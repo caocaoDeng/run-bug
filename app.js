@@ -1,6 +1,10 @@
 const express = require('express')
+const fs = require('fs')
+const path = require('path')
+const https = require('https')
 const axios = require('axios')
 const cheerio = require('cheerio')
+const { imageSize } = require('image-size')
 
 const app = express()
 const url = 'https://www.xiaohongshu.com'
@@ -27,25 +31,43 @@ const getData = async () => {
   return notes.map((item, index) => ({ ...item, _id: index }))
 }
 
-// https://www.xiaohongshu.com/explore/68ce0892000000001300621f?xsec_token=ABIltKV-AuNX6cWoFVYVupB1v6iNj6dyRGmvroG6th_RA=&xsec_source=pc_feed
-const getDetail = async ({ link }) => {
-  const imgs = []
-  const res = await axios.get(
-    'https://www.xiaohongshu.com/explore/68ce0892000000001300621f?xsec_token=ABIltKV-AuNX6cWoFVYVupB1v6iNj6dyRGmvroG6th_RA=&xsec_source=pc_feed'
-  )
-  const $ = cheerio.load(res.data)
-  const elms = $('.swiper-wrapper .swiper-slide')
-  console.log(elms.length)
-  elms.each((_, elm) => {
-    const src = $(elm).find('.img-container .note-slider-img').attr('src')
-    imgs.push(src)
-  })
-  return imgs
+// 加载本地文件
+const loadLocalFile = () => {
+  const html = fs.readFileSync(path.join(__dirname, '1.html'), 'utf-8')
+  const $ = cheerio.load(html)
+  const elms = $('.swiper-wrapper>.swiper-slide')
+  return elms.map((_, elm) => $(elm).find('img').attr('src')).toArray()
 }
 
+// const getImageSizeFromUrl = url => {
+//   return new Promise((resolve, reject) => {
+//     https
+//       .get(url, res => {
+//         const chunks = []
+
+//         res.on('data', chunk => chunks.push(chunk))
+
+//         res.on('end', () => {
+//           try {
+//             const buffer = Buffer.concat(chunks)
+//             const dimensions = imageSize(buffer)
+//             console.log(dimensions)
+//             resolve(dimensions)
+//           } catch (error) {
+//             reject(error)
+//           }
+//         })
+//       })
+//       .on('error', reject)
+//   })
+// }
+
+// getImageSizeFromUrl(
+//   'https://sns-webpic-qc.xhscdn.com/202510161644/a3239140beb37e05462edc0c4fe5a30d/1000g0082dvegpb0ha0005o1jj0qg85bbsu26pcg!nc_n_nwebp_mw_1'
+// )
+
 app.get('/', async (req, res) => {
-  const notes = await getData()
-  // const imgs = await getDetail(notes[0])
+  const notes = await loadLocalFile()
   res.send(notes)
 })
 
